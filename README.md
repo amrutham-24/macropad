@@ -1,7 +1,7 @@
-# 🎛️ Waveshare RP2040 Zero Macro Pad with Rotary Encoder (5 V Logic Safe)
+# 🎛️ Waveshare RP2040 Zero Macro Pad with Rotary Encoder (3.3 V Logic Safe)
 
-A compact **CircuitPython-based macro keyboard** using the **Waveshare RP2040 Zero**,
-three **6×6×5 mm tactile push buttons**, and a **5 V rotary encoder brick module** for media control.
+A compact **CircuitPython-based macro keyboard** using the **Waveshare RP2040 Zero**,  
+three **6×6×5 mm tactile push buttons**, and a **3.3 V rotary encoder brick module** for media control.
 
 It acts as a **USB HID keyboard**, letting you trigger shortcuts and adjust system volume — all from a tiny, customizable board.
 
@@ -9,11 +9,11 @@ It acts as a **USB HID keyboard**, letting you trigger shortcuts and adjust syst
 
 ## ⚙️ Features
 
-* **3 Programmable Buttons**
+* **3 Programmable Buttons**  
   → Send single keys or combos like `CTRL+C` or `SHIFT+ALT+S`.
 
-* **Rotary Encoder (with Push Button)**
-  → Rotate → Volume Up / Down
+* **Rotary Encoder (with Push Button)**  
+  → Rotate → Volume Up / Down  
   → Press → Mute Toggle
 
 * **JSON-based configuration** stored on the CIRCUITPY drive.
@@ -24,33 +24,25 @@ It acts as a **USB HID keyboard**, letting you trigger shortcuts and adjust syst
 
 ## 🧩 Hardware Setup
 
-| Component   | RP2040 Zero Pin | Connection               | Notes                   |
-| ----------- | --------------- | ------------------------ | ----------------------- |
-| Button 1    | GP3             | To GND + GP3             | Active-low              |
-| Button 2    | GP4             | To GND + GP4             | Active-low              |
-| Button 3    | GP5             | To GND + GP5             | Active-low              |
-| Encoder CLK | GP6             | From encoder “CLK”       | Use divider or resistor |
-| Encoder DT  | GP7             | From encoder “DT”        | Use divider or resistor |
-| Encoder SW  | GP8             | From encoder “SW”        | Use divider or resistor |
-| Encoder VCC | 5 V             | From RP2040 Zero 5 V pin |                         |
-| Encoder GND | GND             | Common ground            |                         |
+| Component   | RP2040 Zero Pin | Connection         | Notes          |
+| ------------ | ---------------- | ------------------ | --------------- |
+| Button 1     | GP3              | To GND + GP3       | Active-low      |
+| Button 2     | GP4              | To GND + GP4       | Active-low      |
+| Button 3     | GP5              | To GND + GP5       | Active-low      |
+| Encoder CLK  | GP6              | From encoder “CLK” | Direct connect  |
+| Encoder DT   | GP7              | From encoder “DT”  | Direct connect  |
+| Encoder SW   | GP8              | From encoder “SW”  | Direct connect  |
+| Encoder VCC  | 3.3 V            | From RP2040 3V3 pin |                 |
+| Encoder GND  | GND              | Common ground       |                 |
 
 ---
 
-### ⚠️ Important – Logic Level Safety
+### ⚡ Logic Level Note
 
-Your encoder outputs **5 V logic**, but the RP2040’s GPIO pins accept only **3.3 V max**.
-To protect your board, use **one of these options**:
+Your rotary encoder operates safely at **3.3 V logic**, matching the RP2040 GPIO level.  
+You can **connect CLK, DT, SW directly** — no resistors or dividers required.
 
-**Option 1 – Resistor Dividers**
-Add two resistors per signal (e.g. 10 kΩ → 20 kΩ) to drop 5 V → 3.3 V.
-
-**Option 2 – Series Resistors (Quick Hack)**
-Put a **4.7 kΩ–10 kΩ** resistor in series with each of CLK, DT, SW.
-It usually works because encoder pull-ups are weak, but a divider is safer.
-
-**Option 3 – Use a 3.3 V Encoder**
-If available, this removes the need for level shifting.
+If you ever replace it with a **5 V encoder**, use simple resistor dividers or series resistors to protect the GPIOs.
 
 ---
 
@@ -58,7 +50,7 @@ If available, this removes the need for level shifting.
 
 ### 1️⃣ Install CircuitPython
 
-Get the latest firmware for **Waveshare RP2040 Zero**:
+Get the latest firmware for **Waveshare RP2040 Zero**:  
 👉 [https://circuitpython.org/board/waveshare_rp2040_zero/](https://circuitpython.org/board/waveshare_rp2040_zero/)
 
 Flash it by holding **BOOTSEL** and dragging the `.uf2` file onto the board.
@@ -74,7 +66,7 @@ Only one library is needed in your `/lib/` folder:
 └── adafruit_hid/
 ```
 
-> 🧠 `rotaryio` is built into CircuitPython for RP2040 boards — no extra `.mpy` file required.
+> 🧠 `rotaryio` is built into CircuitPython for RP2040 boards — no extra `.mpy` file required.  
 > You do **not** need `adafruit_bus_device` or `adafruit_busio` for this project.
 
 ---
@@ -105,7 +97,7 @@ Example:
 }
 ```
 
-✅ Supported keys
+✅ Supported keys  
 Letters A–Z, Numbers 0–9, Modifiers CTRL/SHIFT/ALT, and Specials ENTER, TAB, ESC, SPACE, BACKSPACE, DELETE.
 
 If `config.json` is missing or invalid, a default mapping is used automatically.
@@ -114,17 +106,17 @@ If `config.json` is missing or invalid, a default mapping is used automatically.
 
 ## ▶️ Usage
 
-1. Plug in your **RP2040 Zero** — it appears as a USB keyboard.
-2. Press a button → sends your assigned macro.
-3. Rotate encoder → adjusts system volume.
+1. Plug in your **RP2040 Zero** — it appears as a USB keyboard.  
+2. Press a button → sends your assigned macro.  
+3. Rotate encoder → adjusts system volume.  
 4. Press encoder → toggles mute.
 
 ---
 
 ## 🧰 Troubleshooting
 
-* Open **Thonny** or **Mu Editor** to view debug prints via REPL.
-* If encoder doesn’t work, check level shifting on CLK/DT/SW.
+* Open **Thonny** or **Mu Editor** to view debug prints via REPL.  
+* If encoder doesn’t work, check wiring (CLK/DT/SW to GP6–8).  
 * If `rotaryio` import fails, update to the latest CircuitPython release.
 
 ---
@@ -144,23 +136,23 @@ Mute Toggle
 
 | Part                | Description                                      |
 | ------------------- | ------------------------------------------------ |
-| **Microcontroller** | Waveshare RP2040 Zero (RP2040 MCU, USB-C)        |
+| **Microcontroller** | Waveshare RP2040 Zero (RP2040 MCU, USB-C)       |
 | **Buttons**         | 6×6×5 mm tactile push buttons (2-pin side-mount) |
-| **Rotary Encoder**  | Brick module (CLK, DT, SW, VCC=5 V, GND)         |
+| **Rotary Encoder**  | Brick module (CLK, DT, SW, VCC = 3.3 V, GND)     |
 
 ---
 
 ## 🖥️ Macropad Configurator (Desktop Tool)
 
-A companion **Tkinter-based GUI app** that edits `config.json` on your **CIRCUITPY drive**.
+A companion **Tkinter-based GUI app** that edits `config.json` on your **CIRCUITPY drive**.  
 No need to manually open or format the JSON file!
 
 ### ✨ Features
 
-* Auto-detects `config.json` on connected macropad
-* Retro pixel interface with 3 editable button mappings
-* Save, reset, and quit buttons
-* Works on Windows, macOS, and Linux
+* Auto-detects `config.json` on connected macropad  
+* Retro-style interface with 3 editable button mappings  
+* Save, reset, and quit buttons  
+* Works on Windows, macOS, and Linux  
 
 ### ▶️ Run
 
@@ -186,7 +178,7 @@ pip install -r requirements.txt
 
 ## 📜 License
 
-Open-source under the **MIT License** — modify and share freely.
+Open-source under the **MIT License** — modify and share freely.  
 Designed for **makers, streamers, and automation enthusiasts**.
 
 ---
