@@ -1,0 +1,300 @@
+import tkinter as tk
+from tkinter import Canvas
+import json, os, sys, string
+import random
+
+class PixelMacroPadConfigurator:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Macropad Configurator ")
+
+        # Retro color palette
+        self.colors = {
+            'bg_main': "#1f325e",
+            'bg_alt': "#20325e", 
+            'purple_dark': "#4a2f5c",
+            'purple_mid': "#4a305c",
+            'purple_light': "#492f5c",
+            'purple_accent': "#492f5d",
+            'border': "#442c56",
+            'hover': "#482f5d",
+            'dark_accent': "#20203a",
+            'blue_grey': "#29324c"
+        }
+
+        # UI Colors
+        self.bg_color = self.colors['bg_main']
+        self.fg_color = "#f38ba8"
+        self.entry_bg = self.colors['bg_alt']
+        self.entry_fg = "#f9e2af"
+        self.btn_bg = self.colors['purple_mid']
+        self.btn_fg = "#f9e2af"
+
+        # Retro fonts
+        self.pixel_font = ("Consolas", 11, "bold")
+        self.title_font = ("Consolas", 14, "bold")
+        self.small_font = ("Consolas", 9, "bold")
+
+        self.root.configure(bg=self.bg_color)
+        self.center_window()
+
+        # Set proper icon, compatible with PyInstaller
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = sys.path[0]
+
+        icon_path = os.path.join(base_path, "icon.ico")
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
+
+        # Create pixelated background
+        self.create_pixel_background()
+
+        # Auto-find config.json
+        self.file_path = self.find_circuitpython_config()
+        self.config = {"btn1": "", "btn2": "", "btn3": ""}
+        self.entries = {}
+
+        # Load config silently if frozen
+        self.load_config(show_popup=not getattr(sys, 'frozen', False))
+        self.build_ui()
+
+    def create_pixel_background(self):
+        self.canvas = Canvas(self.root, highlightthickness=0)
+        self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        self.root.after(10, self.draw_pixel_pattern)
+
+    def draw_pixel_pattern(self):
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        if width <= 1 or height <= 1:
+            self.root.after(10, self.draw_pixel_pattern)
+            return
+
+        self.canvas.config(width=width, height=height, bg=self.bg_color)
+        pixel_size = 8
+        pattern_colors = [
+            self.colors['bg_main'],
+            self.colors['bg_alt'], 
+            self.colors['dark_accent'],
+            self.colors['blue_grey']
+        ]
+
+        for x in range(0, width, pixel_size):
+            for y in range(0, height, pixel_size):
+                if random.random() < 0.15:
+                    color = random.choice(pattern_colors[1:])
+                    self.canvas.create_rectangle(
+                        x, y, x + pixel_size, y + pixel_size,
+                        fill=color, outline=color
+                    )
+
+        for y in range(0, height, 4):
+            self.canvas.create_line(0, y, width, y, fill=self.colors['border'], width=1)
+
+        self.canvas.lower()
+
+    def center_window(self, width=400, height=350):
+        screen_w = self.root.winfo_screenwidth()
+        screen_h = self.root.winfo_screenheight()
+        x = (screen_w // 2) - (width // 2)
+        y = (screen_h // 2) - (height // 2)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+
+    def build_ui(self):
+        title_frame = tk.Frame(self.root, bg=self.colors['purple_dark'], relief="raised", bd=2)
+        title_frame.pack(fill="x", padx=10, pady=10)
+
+        title_label = tk.Label(
+            title_frame, 
+            text="◆ MACROPAD CONFIGURATOR ◆",
+            font=self.title_font,
+            fg="#f9e2af",
+            bg=self.colors['purple_dark']
+        )
+        title_label.pack(pady=8)
+
+        config_frame = tk.Frame(self.root, bg=self.bg_color)
+        config_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        for i, key in enumerate(["btn1", "btn2", "btn3"]):
+            self.create_button_row(config_frame, key, i)
+
+        btn_frame = tk.Frame(self.root, bg=self.bg_color)
+        btn_frame.pack(fill="x", padx=20, pady=10)
+
+        save_button = tk.Button(
+            btn_frame, text="◢ SAVE CONFIG ◣",
+            font=self.pixel_font,
+            bg=self.colors['purple_mid'],
+            fg=self.btn_fg,
+            relief="raised", bd=3,
+            command=self.save_config
+        )
+        save_button.pack(fill="x", pady=2)
+        self.add_hover_effect(save_button, self.colors['purple_light'], self.colors['purple_mid'])
+
+        reset_button = tk.Button(
+            btn_frame, text="◢ RESET CONFIG ◣",
+            font=self.pixel_font,
+            bg=self.colors['border'],
+            fg=self.btn_fg,
+            relief="raised", bd=3,
+            command=self.reset_config
+        )
+        reset_button.pack(fill="x", pady=2)
+        self.add_hover_effect(reset_button, self.colors['hover'], self.colors['border'])
+
+        quit_button = tk.Button(
+            btn_frame, text="◢ QUIT ◣",
+            font=self.pixel_font,
+            bg=self.colors['blue_grey'],
+            fg=self.btn_fg,
+            relief="raised", bd=3,
+            command=self.root.quit
+        )
+        quit_button.pack(fill="x", pady=2)
+        self.add_hover_effect(quit_button, self.colors['dark_accent'], self.colors['blue_grey'])
+
+    def create_button_row(self, parent, key, row):
+        row_frame = tk.Frame(parent, bg=self.bg_color)
+        row_frame.pack(fill="x", pady=8)
+
+        label_text = f"● BUTTON {key.replace('btn', '')} ●"
+        label = tk.Label(
+            row_frame, text=label_text,
+            font=self.pixel_font,
+            fg=self.fg_color,
+            bg=self.bg_color,
+            width=15,
+            anchor="w"
+        )
+        label.pack(side="left", padx=(0, 10))
+
+        entry = tk.Entry(
+            row_frame, 
+            font=self.pixel_font,
+            bg=self.entry_bg,
+            fg=self.entry_fg,
+            insertbackground=self.fg_color,
+            relief="sunken", bd=2,
+            width=20
+        )
+        entry.insert(0, self.config[key])
+        entry.pack(side="left", fill="x", expand=True)
+        self.entries[key] = entry
+
+    def add_hover_effect(self, widget, hover_color, normal_color):
+        widget.bind("<Enter>", lambda e: e.widget.config(bg=hover_color))
+        widget.bind("<Leave>", lambda e: e.widget.config(bg=normal_color))
+
+    def find_circuitpython_config(self):
+        for drive_letter in string.ascii_uppercase:
+            drive = f"{drive_letter}:/"
+            config_path = os.path.join(drive, "config.json")
+            if os.path.isfile(config_path):
+                return config_path
+        return None
+
+    def show_popup(self, title, message, color="info"):
+        self.root.update_idletasks()  # Ensure main window geometry is updated
+        popup = tk.Toplevel(self.root)
+        popup.title(f"◆ {title} ◆")
+        popup.configure(bg=self.bg_color)
+
+        w, h = 420, 220
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (w // 2)
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (h // 2)
+        popup.geometry(f"{w}x{h}+{x}+{y}")
+        popup.resizable(False, False)
+
+        if color == "error":
+            fg_col, btn_bg = "#ff6b6b", "#ff9999"
+            border_color = "#cc5555"
+        elif color == "warning":
+            fg_col, btn_bg = "#f9e2af", "#ffe599"
+            border_color = "#ccbb77"
+        else:
+            fg_col, btn_bg = self.fg_color, self.colors['purple_mid']
+            border_color = self.colors['border']
+
+        border_frame = tk.Frame(popup, bg=border_color, relief="raised", bd=3)
+        border_frame.pack(fill="both", expand=True, padx=5, pady=5)
+
+        content_frame = tk.Frame(border_frame, bg=self.bg_color)
+        content_frame.pack(fill="both", expand=True, padx=3, pady=3)
+
+        message_formatted = f"◆ {message} ◆"
+        tk.Label(
+            content_frame, text=message_formatted,
+            font=self.pixel_font,
+            fg=fg_col,
+            bg=self.bg_color,
+            wraplength=380,
+            justify="center"
+        ).pack(pady=20)
+
+        ok_button = tk.Button(
+            content_frame, text="◢ OK ◣",
+            font=self.pixel_font,
+            bg=btn_bg,
+            fg=self.btn_fg,
+            relief="raised", bd=3,
+            command=popup.destroy
+        )
+        ok_button.pack(pady=10, ipadx=15, ipady=5)
+        self.add_hover_effect(ok_button, self.colors['hover'], btn_bg)
+
+        popup.transient(self.root)
+        popup.grab_set()
+        self.root.wait_window(popup)
+
+    def load_config(self, show_popup=True):
+        if self.file_path:
+            try:
+                with open(self.file_path, "r") as f:
+                    data = json.load(f)
+                    for key in ["btn1", "btn2", "btn3"]:
+                        self.config[key] = data.get(key, "")
+                if show_popup:
+                    self.show_popup("CONFIG LOADED", f"Configuration loaded from:\n{self.file_path}", color="info")
+            except json.JSONDecodeError:
+                if show_popup:
+                    self.show_popup("INVALID JSON", "Found config.json is invalid.\nUsing default configuration.", color="warning")
+            except Exception as e:
+                if show_popup:
+                    self.show_popup("LOAD ERROR", f"Could not load config:\n{e}", color="error")
+        else:
+            if show_popup:
+                self.show_popup("NO DEVICE", "No CircuitPython drive detected.\nUsing default configuration.", color="warning")
+
+    def save_config(self):
+        if not self.file_path:
+            self.show_popup("ERROR", "No CircuitPython device detected.\nPlease connect your macropad.", color="error")
+            return
+
+        for key in self.entries:
+            self.config[key] = self.entries[key].get()
+
+        temp_file = self.file_path + ".tmp"
+        try:
+            with open(temp_file, "w") as f:
+                json.dump(self.config, f, indent=4)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_file, self.file_path)
+            self.show_popup("SUCCESS", f"Configuration saved successfully!\n{self.file_path}", color="info")
+        except Exception as e:
+            self.show_popup("SAVE ERROR", f"Could not save configuration:\n{e}", color="error")
+
+    def reset_config(self):
+        for key in self.entries:
+            self.entries[key].delete(0, tk.END)
+        self.show_popup("RESET COMPLETE", "All button configurations cleared.", color="info")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PixelMacroPadConfigurator(root)
+    root.mainloop()
