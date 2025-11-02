@@ -1,0 +1,125 @@
+import board, digitalio, time, usb_hid, json
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+from adafruit_hid.consumer_control import ConsumerControl
+from adafruit_hid.consumer_control_code import ConsumerControlCode
+from rotaryio import IncrementalEncoder  # <-- NEW
+
+# --- HID Devices ---
+kbd = Keyboard(usb_hid.devices)
+cc = ConsumerControl(usb_hid.devices)
+
+# --- Buttons ---
+btn1 = digitalio.DigitalInOut(board.GP3)
+btn1.direction = digitalio.Direction.INPUT
+btn1.pull = digitalio.Pull.UP
+
+btn2 = digitalio.DigitalInOut(board.GP4)
+btn2.direction = digitalio.Direction.INPUT
+btn2.pull = digitalio.Pull.UP
+
+btn3 = digitalio.DigitalInOut(board.GP5)
+btn3.direction = digitalio.Direction.INPUT
+btn3.pull = digitalio.Pull.UP
+
+# --- Rotary Encoder (A=GP6, B=GP7) ---
+encoder = IncrementalEncoder(board.GP6, board.GP7)
+last_pos = encoder.position
+
+# Optional encoder push button
+enc_btn = digitalio.DigitalInOut(board.GP8)
+enc_btn.direction = digitalio.Direction.INPUT
+enc_btn.pull = digitalio.Pull.UP
+
+# --- Key Lookup Table ---
+KEY_LOOKUP = {
+    # Letters
+    "A": Keycode.A, "B": Keycode.B, "C": Keycode.C, "D": Keycode.D,
+    "E": Keycode.E, "F": Keycode.F, "G": Keycode.G, "H": Keycode.H,
+    "I": Keycode.I, "J": Keycode.J, "K": Keycode.K, "L": Keycode.L,
+    "M": Keycode.M, "N": Keycode.N, "O": Keycode.O, "P": Keycode.P,
+    "Q": Keycode.Q, "R": Keycode.R, "S": Keycode.S, "T": Keycode.T,
+    "U": Keycode.U, "V": Keycode.V, "W": Keycode.W, "X": Keycode.X,
+    "Y": Keycode.Y, "Z": Keycode.Z,
+
+    # Numbers
+    "0": Keycode.ZERO, "1": Keycode.ONE, "2": Keycode.TWO, "3": Keycode.THREE,
+    "4": Keycode.FOUR, "5": Keycode.FIVE, "6": Keycode.SIX,
+    "7": Keycode.SEVEN, "8": Keycode.EIGHT, "9": Keycode.NINE,
+
+    # Specials
+    "ENTER": Keycode.ENTER, "TAB": Keycode.TAB, "ESC": Keycode.ESCAPE,
+    "SPACE": Keycode.SPACEBAR, "BACKSPACE": Keycode.BACKSPACE, "DELETE": Keycode.DELETE,
+
+    # Modifiers
+    "CTRL": Keycode.CONTROL, "SHIFT": Keycode.SHIFT, "ALT": Keycode.ALT,
+}
+
+# --- Default Mapping ---
+default_config = {
+    "btn1": "A",
+    "btn2": "CTRL+C",
+    "btn3": "SHIFT+ALT+S"
+}
+
+def load_config():
+    try:
+        with open("config.json", "r") as f:
+            return json.load(f)
+    except:
+        return default_config
+
+def parse_combo(combo_str):
+    """Turn 'CTRL+C' into [Keycode.CONTROL, Keycode.C]"""
+    parts = combo_str.split("+")
+    codes = []
+    for p in parts:
+        p = p.strip().upper()
+        if p in KEY_LOOKUP:
+            codes.append(KEY_LOOKUP[p])
+        else:
+            print("Unknown key:", p)
+    return codes
+
+config = load_config()
+btn_map = {
+    "btn1": parse_combo(config["btn1"]),
+    "btn2": parse_combo(config["btn2"]),
+    "btn3": parse_combo(config["btn3"])
+}
+
+print("Macro board with volume knob ready! Current config:", config)
+
+while True:
+    # --- Buttons ---
+    if not btn1.value:
+        kbd.send(*btn_map["btn1"])
+        print("Btn1 →", config["btn1"])
+        time.sleep(0.2)  # debounce
+
+    if not btn2.value:
+        kbd.send(*btn_map["btn2"])
+        print("Btn2 →", config["btn2"])
+        time.sleep(0.2)
+
+    if not btn3.value:
+        kbd.send(*btn_map["btn3"])
+        print("Btn3 →", config["btn3"])
+        time.sleep(0.2)
+
+    # --- Rotary Encoder ---
+    pos = encoder.position
+    if pos != last_pos:
+        if pos > last_pos:
+            cc.send(ConsumerControlCode.VOLUME_INCREMENT)
+            print("Volume Up")
+        else:
+            cc.send(ConsumerControlCode.VOLUME_DECREMENT)
+            print("Volume Down")
+        last_pos = pos
+
+    # --- Encoder Button ---
+    if not enc_btn.value:
+        cc.send(ConsumerControlCode.MUTE)
+        print("Mute Toggle")
+        time.sleep(0.3)
